@@ -46,11 +46,11 @@ Book Imposition Cost Optimizer
 
 ---
 
-## 4. 核心设计原则
+## 4. 原则
 
-### 4.1 报价优先
+### 4.1 报价
 
-第一阶段只需要计算：
+只需要计算：
 
 - 纸张利用率
 - 书帖方案
@@ -62,16 +62,6 @@ Book Imposition Cost Optimizer
 - 单本成本
 - 推荐报价方案
 
-第一阶段不需要：
-
-- 输出真实拼版 PDF
-- 生成裁切线
-- 生成色标
-- 生成 JDF
-- 自动陷印
-- 自动色彩管理
-
----
 
 ### 4.2 枚举方案，而不是固定方案
 
@@ -88,215 +78,8 @@ Book Imposition Cost Optimizer
 
 然后逐一计算成本，并排序推荐。
 
----
 
-### 4.3 成本最低不一定最合理
-
-系统不能只按照总成本排序。
-
-某些方案虽然成本最低，但可能存在生产风险，例如：
-
-- 纸纹方向不合适
-- 32P 厚纸折页风险高
-- 最后一帖太薄
-- 补白页太多
-- 折页方式复杂
-- 不适合锁线或精装
-
-所以系统需要同时输出：
-
-1. 最低成本方案
-2. 最省纸方案
-3. 生产最稳妥方案
-4. 综合推荐方案
-
----
-
-## 5. 核心输入参数
-
-## 5.1 产品参数 Product
-
-```json
-{
-  "product_type": "book",
-  "trim_width": 210,
-  "trim_height": 285,
-  "text_pages": 160,
-  "cover_pages": 4,
-  "quantity": 1000,
-  "binding": "sewn_perfect_binding",
-  "bleed": 3
-}
-```
-
-字段说明：
-
-| 字段 | 说明 |
-|---|---|
-| product_type | 产品类型，例如 book、catalogue、brochure |
-| trim_width | 成品宽度，单位 mm |
-| trim_height | 成品高度，单位 mm |
-| text_pages | 内文页数 |
-| cover_pages | 封面页数，通常为 4P |
-| quantity | 生产数量 |
-| binding | 装订方式 |
-| bleed | 出血，常规 3mm |
-
----
-
-## 5.2 内文印刷参数 Text Print Spec
-
-```json
-{
-  "paper_name": "157gsm art paper",
-  "color_front": 4,
-  "color_back": 4,
-  "has_spot_color": false,
-  "spot_color_count": 0
-}
-```
-
-字段说明：
-
-| 字段 | 说明 |
-|---|---|
-| paper_name | 内文纸张 |
-| color_front | 正面颜色数 |
-| color_back | 反面颜色数 |
-| has_spot_color | 是否有专色 |
-| spot_color_count | 专色数量 |
-
----
-
-## 5.3 封面参数 Cover Spec
-
-```json
-{
-  "paper_name": "300gsm art card",
-  "color_front": 4,
-  "color_back": 0,
-  "lamination": "matt",
-  "spot_uv": false,
-  "foil": false,
-  "embossing": false,
-  "flap_width": 0
-}
-```
-
-字段说明：
-
-| 字段 | 说明 |
-|---|---|
-| paper_name | 封面纸张 |
-| color_front | 封面正面颜色数 |
-| color_back | 封面反面颜色数 |
-| lamination | 覆膜方式 |
-| spot_uv | 是否局部 UV |
-| foil | 是否烫金 |
-| embossing | 是否击凸 |
-| flap_width | 勒口宽度，无勒口则为 0 |
-
----
-
-## 5.4 纸张参数 Paper
-
-```json
-{
-  "paper_name": "157gsm art paper",
-  "sheet_width": 889,
-  "sheet_height": 1194,
-  "gsm": 157,
-  "price_per_ton": 8000,
-  "grain_direction": "long"
-}
-```
-
-字段说明：
-
-| 字段 | 说明 |
-|---|---|
-| paper_name | 纸张名称 |
-| sheet_width | 大纸宽度，单位 mm |
-| sheet_height | 大纸高度，单位 mm |
-| gsm | 纸张克重 |
-| price_per_ton | 吨价 |
-| grain_direction | 纸纹方向，long 或 short |
-
----
-
-## 5.5 印刷机参数 Press
-
-```json
-{
-  "press_name": "KBA 105",
-  "max_width": 720,
-  "max_height": 1020,
-  "min_width": 360,
-  "min_height": 520,
-  "gripper": 12,
-  "side_margin": 10,
-  "color_bar_space": 8,
-  "color_units": 5
-}
-```
-
-字段说明：
-
-| 字段 | 说明 |
-|---|---|
-| press_name | 印刷机名称 |
-| max_width | 最大上机宽度 |
-| max_height | 最大上机高度 |
-| min_width | 最小上机宽度 |
-| min_height | 最小上机高度 |
-| gripper | 咬口 |
-| side_margin | 左右边距 |
-| color_bar_space | 色标空间 |
-| color_units | 色组数量 |
-
----
-
-## 6. 核心输出结果
-
-系统每个方案应该输出如下结构：
-
-```json
-{
-  "plan_id": "A",
-  "part": "text",
-  "signature_size": 16,
-  "signature_count": 10,
-  "paper_name": "157gsm art paper",
-  "paper_size": "889x1194mm",
-  "orientation": "rotated",
-  "sheets_per_book": 10,
-  "net_sheets": 10000,
-  "waste_sheets": 1300,
-  "total_sheets": 11300,
-  "paper_utilization": 0.865,
-  "plate_count": 80,
-  "print_impressions": 20000,
-  "paper_weight_kg": 1883,
-  "paper_cost": 15061,
-  "plate_cost": 4800,
-  "printing_cost": 4200,
-  "folding_cost": 900,
-  "binding_cost": 1200,
-  "total_cost": 26161,
-  "unit_cost": 26.16,
-  "score": 87,
-  "recommendation": "recommended",
-  "risk_notes": [
-    "Suitable for sewn binding",
-    "No blank pages",
-    "Paper grain direction OK"
-  ]
-}
-```
-
----
-
-## 7. 核心计算流程
+## 5. 核心计算流程
 
 整体流程：
 
@@ -340,7 +123,7 @@ Book Imposition Cost Optimizer
 
 ---
 
-## 8. 页面尺寸计算
+## 6. 页面尺寸计算
 
 页面实际占位尺寸需要包含出血。
 
@@ -370,7 +153,7 @@ Book Imposition Cost Optimizer
 
 ---
 
-## 9. 可用印刷面积计算
+## 7. 可用印刷面积计算
 
 印刷机或上机纸不能全部用于拼版，需要扣除咬口、边距、色标。
 
@@ -396,9 +179,9 @@ Book Imposition Cost Optimizer
 
 ---
 
-## 10. 一面可拼页数计算
+## 8. 一面可拼页数计算
 
-### 10.1 不旋转
+### 8.1 不旋转
 
 ```text
 横向数量 = floor(可用宽度 / 页面占位宽)
@@ -406,7 +189,7 @@ Book Imposition Cost Optimizer
 一面页数 = 横向数量 × 纵向数量
 ```
 
-### 10.2 旋转 90 度
+### 8.2 旋转 90 度
 
 ```text
 横向数量 = floor(可用宽度 / 页面占位高)
@@ -414,7 +197,7 @@ Book Imposition Cost Optimizer
 一面页数 = 横向数量 × 纵向数量
 ```
 
-### 10.3 双面可容纳页数
+### 8.3 双面可容纳页数
 
 ```text
 双面理论页数 = 一面页数 × 2
@@ -428,7 +211,7 @@ Book Imposition Cost Optimizer
 
 ---
 
-## 11. 可用书帖规格
+## 9. 可用书帖规格
 
 系统第一阶段建议支持：
 
@@ -442,7 +225,7 @@ Book Imposition Cost Optimizer
 
 不同装订方式的优先级不同。
 
-### 11.1 胶装
+### 9.1 胶装
 
 优先级：
 
@@ -450,7 +233,7 @@ Book Imposition Cost Optimizer
 32P → 16P → 8P → 4P
 ```
 
-### 11.2 锁线胶装
+### 9.2 锁线胶装
 
 优先级：
 
@@ -465,7 +248,7 @@ Book Imposition Cost Optimizer
 - 最后一帖不应太薄
 - 纸纹方向必须正确
 
-### 11.3 骑马钉
+### 9.3 骑马钉
 
 优先级：
 
@@ -479,7 +262,7 @@ Book Imposition Cost Optimizer
 - 纸张越厚，可接受总页数越少
 - 厚书不适合骑马钉
 
-### 11.4 精装书芯
+### 9.4 精装书芯
 
 优先级：
 
@@ -495,7 +278,7 @@ Book Imposition Cost Optimizer
 
 ---
 
-## 12. 书帖数量和补白页计算
+## 10. 书帖数量和补白页计算
 
 公式：
 
@@ -528,7 +311,7 @@ Book Imposition Cost Optimizer
 
 ---
 
-## 13. 分帖组合优化
+## 11. 分帖组合优化
 
 单一书帖规格不一定最优。
 
@@ -547,7 +330,7 @@ Book Imposition Cost Optimizer
 
 因此系统应支持混合分帖。
 
-### 13.1 简单混合分帖逻辑
+### 11.1 简单混合分帖逻辑
 
 优先使用主书帖，然后用小书帖补足。
 
@@ -584,7 +367,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 14. 每本用纸计算
+## 12. 每本用纸计算
 
 如果每个书帖使用 1 张大纸，则：
 
@@ -609,7 +392,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 15. 净用纸计算
+## 13. 净用纸计算
 
 公式：
 
@@ -628,11 +411,11 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 16. 损耗计算
+## 14. 损耗计算
 
 损耗建议拆成多个部分，而不是只用固定百分比。
 
-### 16.1 损耗组成
+### 14.1 损耗组成
 
 ```text
 总损耗 =
@@ -643,7 +426,7 @@ def plan_signatures(page_count, preferred_sizes):
 + 后道加工损耗
 ```
 
-### 16.2 印刷调机损耗
+### 14.2 印刷调机损耗
 
 公式：
 
@@ -660,7 +443,7 @@ def plan_signatures(page_count, preferred_sizes):
 印刷调机损耗 = 10 × 100 = 1000 张
 ```
 
-### 16.3 印刷过程损耗
+### 14.3 印刷过程损耗
 
 公式：
 
@@ -677,7 +460,7 @@ def plan_signatures(page_count, preferred_sizes):
 印刷过程损耗 = 10000 × 2% = 200 张
 ```
 
-### 16.4 折页损耗
+### 14.4 折页损耗
 
 公式：
 
@@ -685,7 +468,7 @@ def plan_signatures(page_count, preferred_sizes):
 折页损耗 = 净用纸张数 × 折页损耗率
 ```
 
-### 16.5 总用纸
+### 14.5 总用纸
 
 公式：
 
@@ -695,7 +478,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 17. 纸张重量计算
+## 15. 纸张重量计算
 
 公式：
 
@@ -722,7 +505,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 18. 纸张成本计算
+## 16. 纸张成本计算
 
 如果纸张按吨价计算：
 
@@ -742,9 +525,9 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 19. 纸张利用率计算
+## 17. 纸张利用率计算
 
-### 19.1 理论成品利用率
+### 17.1 理论成品利用率
 
 公式：
 
@@ -775,7 +558,7 @@ def plan_signatures(page_count, preferred_sizes):
 ≈ 90.2%
 ```
 
-### 19.2 实际利用率
+### 17.2 实际利用率
 
 实际利用率应考虑：
 
@@ -804,7 +587,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 20. 版数计算
+## 18. 版数计算
 
 公式：
 
@@ -837,7 +620,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 21. 版费计算
+## 19. 版费计算
 
 公式：
 
@@ -856,7 +639,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 22. 印刷印次计算
+## 20. 印刷印次计算
 
 公式：
 
@@ -882,17 +665,17 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 23. 印刷成本计算
+## 21. 印刷成本计算
 
 建议支持两种模式。
 
-### 23.1 按千印计算
+### 21.1 按千印计算
 
 ```text
 印刷成本 = 印刷印次 ÷ 1000 × 每千印单价
 ```
 
-### 23.2 按开机费 + 运行费计算
+### 21.2 按开机费 + 运行费计算
 
 ```text
 印刷成本 =
@@ -916,7 +699,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 24. 折页成本计算
+## 22. 折页成本计算
 
 公式：
 
@@ -938,7 +721,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 25. 锁线成本计算
+## 23. 锁线成本计算
 
 适用于锁线胶装、精装书芯。
 
@@ -960,7 +743,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 26. 胶装成本计算
+## 24. 胶装成本计算
 
 公式：
 
@@ -979,11 +762,11 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 27. 封面核价逻辑
+## 25. 封面核价逻辑
 
 封面应单独核价，不与内文混算。
 
-### 27.1 普通胶装封面展开尺寸
+### 25.1 普通胶装封面展开尺寸
 
 无勒口：
 
@@ -1000,14 +783,14 @@ def plan_signatures(page_count, preferred_sizes):
 封面展开高 = 成品高度
 ```
 
-### 27.2 加出血后的封面占位
+### 25.2 加出血后的封面占位
 
 ```text
 封面占位宽 = 封面展开宽 + 2 × 出血
 封面占位高 = 封面展开高 + 2 × 出血
 ```
 
-### 27.3 书脊厚度估算
+### 25.3 书脊厚度估算
 
 公式：
 
@@ -1025,7 +808,7 @@ def plan_signatures(page_count, preferred_sizes):
 书脊厚度 = 80 × 0.1 = 8mm
 ```
 
-### 27.4 封面一张大纸可拼数量
+### 25.4 封面一张大纸可拼数量
 
 ```text
 横向数量 = floor(大纸宽 / 封面占位宽)
@@ -1036,13 +819,13 @@ def plan_signatures(page_count, preferred_sizes):
 
 需要同时计算旋转方案，并选择更优结果。
 
-### 27.5 封面净用纸
+### 25.5 封面净用纸
 
 ```text
 封面净用纸 = ceil(生产数量 / 每张大纸可拼封面数量)
 ```
 
-### 27.6 封面成本组成
+### 25.6 封面成本组成
 
 封面成本包括：
 
@@ -1059,9 +842,9 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 28. 装订方式规则
+## 26. 装订方式规则
 
-## 28.1 骑马钉 Saddle Stitch
+## 26.1 骑马钉 Saddle Stitch
 
 规则：
 
@@ -1079,7 +862,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 28.2 胶装 Perfect Binding
+## 26.2 胶装 Perfect Binding
 
 规则：
 
@@ -1097,7 +880,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 28.3 锁线胶装 Sewn Perfect Binding
+## 26.3 锁线胶装 Sewn Perfect Binding
 
 规则：
 
@@ -1116,7 +899,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 28.4 精装 Hardcover
+## 26.4 精装 Hardcover
 
 规则：
 
@@ -1133,7 +916,7 @@ def plan_signatures(page_count, preferred_sizes):
 
 ---
 
-## 29. 纸纹方向判断
+## 27. 纸纹方向判断
 
 纸纹方向对书刊很重要。
 
@@ -1167,11 +950,11 @@ Warning: Paper grain direction may not be suitable for book binding.
 
 ---
 
-## 30. 方案可行性检查
+## 28. 方案可行性检查
 
 每个方案必须通过以下检查。
 
-### 30.1 尺寸检查
+### 28.1 尺寸检查
 
 ```text
 拼版所需尺寸 <= 可用印刷尺寸
@@ -1179,7 +962,7 @@ Warning: Paper grain direction may not be suitable for book binding.
 上机纸尺寸 >= 印刷机最小尺寸
 ```
 
-### 30.2 书帖检查
+### 28.2 书帖检查
 
 ```text
 书帖规格属于允许列表
@@ -1188,7 +971,7 @@ Warning: Paper grain direction may not be suitable for book binding.
 最后一帖不能过薄
 ```
 
-### 30.3 颜色检查
+### 28.3 颜色检查
 
 ```text
 正面颜色数 <= 印刷机色组数量
@@ -1196,7 +979,7 @@ Warning: Paper grain direction may not be suitable for book binding.
 专色数量不能超过机器能力
 ```
 
-### 30.4 生产检查
+### 28.4 生产检查
 
 ```text
 纸张克重适合该折页方式
@@ -1206,7 +989,7 @@ Warning: Paper grain direction may not be suitable for book binding.
 
 ---
 
-## 31. 方案评分模型
+## 29. 方案评分模型
 
 综合评分用于推荐方案。
 
@@ -1234,7 +1017,7 @@ final_score = (
 
 ---
 
-## 32. 扣分规则示例
+## 30. 扣分规则示例
 
 ```text
 纸纹方向错误：-30
@@ -1252,31 +1035,31 @@ final_score = (
 
 ---
 
-## 33. 推荐输出格式
+## 31. 推荐输出格式
 
 系统最终不应只输出一个方案。
 
 建议输出：
 
-### 33.1 最低成本方案
+### 31.1 最低成本方案
 
 ```text
 适合普通商业订单，报价最有竞争力。
 ```
 
-### 33.2 最省纸方案
+### 31.2 最省纸方案
 
 ```text
 纸张利用率最高，但可能工序成本或生产风险更高。
 ```
 
-### 33.3 生产最稳妥方案
+### 31.3 生产最稳妥方案
 
 ```text
 适合高端画册、艺术书、精装书、色彩要求高的订单。
 ```
 
-### 33.4 综合推荐方案
+### 31.4 综合推荐方案
 
 ```text
 综合考虑成本、纸张利用率和生产风险后的推荐方案。
@@ -1284,7 +1067,7 @@ final_score = (
 
 ---
 
-## 34. 输出表格示例
+## 32. 输出表格示例
 
 | 方案 | 书帖 | 大纸 | 利用率 | 补白 | 版数 | 总成本 | 单本成本 | 建议 |
 |---|---:|---|---:|---:|---:|---:|---:|---|
@@ -1300,9 +1083,9 @@ final_score = (
 
 ---
 
-## 35. 主要函数设计
+## 33. 主要函数设计
 
-## 35.1 calculate_page_box
+## 32.1 calculate_page_box
 
 计算含出血页面尺寸。
 
